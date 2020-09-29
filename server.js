@@ -1,6 +1,8 @@
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
+const User = require('./models/model-user');
+const Exercise = require('./models/model-exercise');
 
 const cors = require('cors')
 require('dotenv').config();
@@ -22,6 +24,69 @@ app.use(express.static('public'))
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
+
+app.post('/api/exercise/new-user', (req,res) => {
+  const {username} = req.body;
+
+  if (!username) {
+    return res.json({error: 'Please add a username'})
+  }
+
+  User.findOne({username})
+  .then(user => {
+    if (user) {
+      return res.json({error: `User already exists with id: ${user._id}`})
+    };
+    var tempUser = new User({
+      username: req.body.username
+    });
+    tempUser.save()
+    .then(data => res.json({message: `User is created with id: ${data._id}`}))
+    .catch(err => console.log(err));
+  })
+})
+
+app.post('/api/exercise/add', (req, res) => {
+  const {userId, description, duration} = req.body;
+  const date = new Date(req.body.date).toISOString() || new Date().toISOString();
+
+  console.log(date);
+
+
+
+  if (!userId || !description || !duration || !date) {
+    return res.json({error: 'Please fill required fields'})
+  }
+  var tempExercise = new Exercise({
+    userId,
+    description,
+    duration,
+    date
+  });
+
+  tempExercise.save()
+  .then(data => res.json({message: 'Exercise is saved'}))
+  .catch(err => console.log(err));
+})
+
+app.get('/api/exercise/log', (req,res) => {
+  const {userId, limit} = req.query;
+  const from = new Date(req.query.from).toISOString() || new Date(0).toISOString();
+  const to = new Date(req.query.to).toISOString() || new Date().toISOString();
+
+  console.log(from, to, limit);
+
+  Exercise.find({userId})
+    .sort({"date": -1})
+    .where("date")
+    .gte(from)
+    .lte(to)
+    .limit(Number(limit))
+    .select("-_id -userId -__v")
+    .then(data => res.json(data))
+    .catch(err => console.log(err));
+
+})
 
 
 // Not found middleware
@@ -48,10 +113,9 @@ app.use((err, req, res, next) => {
     .send(errMessage)
 })
 
-app.post('/api/exercise/new-user', (req,res) => {
-  
 
-})
+
+
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
