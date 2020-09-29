@@ -41,7 +41,7 @@ app.post('/api/exercise/new-user', (req,res) => {
       username: req.body.username
     });
     tempUser.save()
-    .then(data => res.json({message: `User is created with id: ${data._id}`}))
+    .then(data => res.json({username: data.username, _id: data._id}))
     .catch(err => console.log(err));
   })
 })
